@@ -44,8 +44,7 @@ out/
 ### Uploaded Files ###
 uploads/
 
-### Spring Application Config ###
-src/main/resources/application.yaml
-src/main/resources/application.yml
-src/main/resources/application-*.yaml
-src/main/resources/application-*.yml
+### Local Spring Configuration ###
+Assignment/src/main/resources/application-local.yaml
+Assignment/src/main/resources/application-secret.yaml
+Assignment/src/main/resources/application-secret.yml
