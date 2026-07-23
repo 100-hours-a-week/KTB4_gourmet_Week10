@@ -2,6 +2,16 @@ const postList = document.querySelector("#post-list");
 
 const CURRENT_BOARD = document.body.dataset.board || "free";
 
+const BOARD_TYPE_VALUES = {
+    free: "FREE",
+    question: "QUESTION",
+    study: "STUDY",
+    project: "PROJECT"
+};
+
+const API_BOARD_TYPE =
+    BOARD_TYPE_VALUES[CURRENT_BOARD] || BOARD_TYPE_VALUES.free;
+
 let currentPage = 0;
 const pageSize = 10;
 let isLoading = false;
@@ -16,10 +26,10 @@ const BOARD_EMPTY_MESSAGES = {
 };
 
 const BOARD_BADGES = {
-    free: "FREE",
-    question: "Q&A",
-    study: "STUDY LOG",
-    project: "RECRUIT"
+    FREE: "FREE",
+    QUESTION: "Q&A",
+    STUDY: "STUDY LOG",
+    PROJECT: "RECRUIT"
 };
 
 function formatCount(count) {
@@ -107,7 +117,8 @@ function createPostCard(post) {
 
     const badge = document.createElement("span");
     badge.className = "post-badge";
-    badge.textContent = BOARD_BADGES[CURRENT_BOARD] || "POST";
+    badge.textContent =
+        BOARD_BADGES[post.boardType] || "POST";
 
     const postTitle = document.createElement("h2");
     postTitle.className = "post-title";
@@ -253,19 +264,29 @@ async function fetchPosts() {
     isLoading = true;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/posts?page=${currentPage}&size=${pageSize}`);
+        const query = new URLSearchParams({
+            boardType: API_BOARD_TYPE,
+            page: String(currentPage),
+            size: String(pageSize)
+        });
+
+        const response = await fetch(
+            `${API_BASE_URL}/posts?${query.toString()}`
+        );
 
         if (!response.ok) {
             throw new Error("게시글 목록 조회 실패");
         }
 
         const pageData = await response.json();
-        const rawPosts = getPageContent(pageData);
-        const posts = filterPostsByBoard(rawPosts, CURRENT_BOARD);
+        const posts = getPageContent(pageData);
 
-        console.log("게시글 목록 조회 성공:", pageData);
+        console.log(
+            `${API_BOARD_TYPE} 게시판 목록 조회 성공:`,
+            pageData
+        );
 
-        if (currentPage === 0 && posts.length === 0 && !getHasNext(pageData, rawPosts.length)) {
+        if (currentPage === 0 && posts.length === 0) {
             renderEmptyMessage();
             hasMore = false;
             return;
@@ -273,26 +294,27 @@ async function fetchPosts() {
 
         appendPosts(posts);
 
-        hasMore = getHasNext(pageData, rawPosts.length);
+        hasMore = getHasNext(pageData, posts.length);
         currentPage = (pageData.page ?? currentPage) + 1;
 
-        const cardCount = postList.querySelectorAll(".post-card").length;
+        if (!hasMore) {
+            const cardCount =
+                postList.querySelectorAll(".post-card").length;
 
-        // 게시판 필터로 비면 다음 페이지를 더 가져온다 (Spring 목록 API 유지)
-        if (hasMore && cardCount < 8) {
-            isLoading = false;
-            fetchPosts();
-            return;
-        }
-
-        if (!hasMore && cardCount === 0) {
-            renderEmptyMessage();
+            if (cardCount === 0) {
+                renderEmptyMessage();
+            }
         }
     } catch (error) {
         console.error(error);
 
-        if (currentPage === 0 && postList.querySelectorAll(".post-card").length === 0) {
-            renderEmptyMessage("게시글 목록을 불러오지 못했습니다.");
+        if (
+            currentPage === 0 &&
+            postList.querySelectorAll(".post-card").length === 0
+        ) {
+            renderEmptyMessage(
+                "게시글 목록을 불러오지 못했습니다."
+            );
         }
     } finally {
         isLoading = false;

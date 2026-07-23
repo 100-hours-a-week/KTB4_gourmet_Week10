@@ -35,3 +35,17 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Environment Variables ###
+.env
+.env.*
+!.env.example
+
+### Uploaded Files ###
+uploads/
+
+### Spring Application Config ###
+src/main/resources/application.yaml
+src/main/resources/application.yml
+src/main/resources/application-*.yaml
+src/main/resources/application-*.yml

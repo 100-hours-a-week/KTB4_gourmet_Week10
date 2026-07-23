@@ -17,6 +17,8 @@ import KTB4_gourmet_Week10.Assignment.repository.PostRepository;
 import KTB4_gourmet_Week10.Assignment.repository.PostViewRepository;
 import KTB4_gourmet_Week10.Assignment.repository.UserRepository;
 import KTB4_gourmet_Week10.Assignment.auth.SecurityUtil;
+import KTB4_gourmet_Week10.Assignment.entity.BoardType;
+import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -54,7 +58,8 @@ public class PostService {
         Post post = new Post(
                 user,
                 request.getTitle(),
-                request.getContent()
+                request.getContent(),
+                request.getBoardType()
         );
 
         Post savedPost = postRepository.save(post);
@@ -87,19 +92,33 @@ public class PostService {
         return createPostResponseDto(savedPost);
     }
 
-    public PostPageResponseDto getPosts(int page, int size) {
-        Page<Post> postPage = postRepository.findAll(
-                PageRequest.of(
-                        page,
-                        size,
-                        Sort.by(Sort.Direction.DESC, "createdAt")
+    public PostPageResponseDto getPosts(
+            BoardType boardType,
+            int page,
+            int size
+    ) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(
+                        Sort.Order.desc("createdAt"),
+                        Sort.Order.desc("id")
                 )
         );
 
-        List<PostResponseDto> content = postPage.getContent()
-                .stream()
-                .map(this::createPostResponseDto)
-                .toList();
+        Page<Post> postPage;
+
+        if (boardType == null) {
+            postPage = postRepository.findAll(pageable);
+        } else {
+            postPage = postRepository.findByBoardType(
+                    boardType,
+                    pageable
+            );
+        }
+
+        List<PostResponseDto> content =
+                createPostResponseDtos(postPage.getContent());
 
         return new PostPageResponseDto(
                 content,
@@ -113,10 +132,16 @@ public class PostService {
     }
 
     @Transactional
-    public PostResponseDto getPost(Long postId, Long userId) {
+    public PostResponseDto getPost(Long postId) {
         Post post = findPostById(postId);
 
-        increaseViewCountIfFirstView(post, userId);
+        SecurityUtil.getOptionalLoginUserId()
+                .ifPresent(userId ->
+                        increaseViewCountIfFirstView(
+                                post,
+                                userId
+                        )
+                );
 
         return createPostResponseDto(post);
     }
@@ -185,23 +210,85 @@ public class PostService {
     }
 
     private void increaseViewCountIfFirstView(Post post, Long userId) {
-        if (userId == null) {
-            return;
-        }
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("회원을 찾을 수 없습니다."));
-
-        boolean alreadyViewed = postViewRepository.existsByUser_IdAndPost_Id(userId, post.getId());
+        boolean alreadyViewed =
+                postViewRepository
+                        .existsByUser_IdAndPost_Id(
+                                userId,
+                                post.getId()
+                        );
 
         if (alreadyViewed) {
             return;
         }
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "회원을 찾을 수 없습니다."
+                        )
+                );
+
         PostView postView = new PostView(user, post);
         postViewRepository.save(postView);
 
         post.increaseViewCount();
+    }
+
+    private List<PostResponseDto> createPostResponseDtos(
+            List<Post> posts
+    ) {
+        if (posts.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> postIds = posts.stream()
+                .map(Post::getId)
+                .toList();
+
+        Map<Long, Long> likeCountMap =
+                postLikeRepository.countByPostIds(postIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                projection -> projection.getPostId(),
+                                projection -> projection.getTotalCount()
+                        ));
+
+        Map<Long, Long> commentCountMap =
+                commentRepository.countByPostIds(postIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                projection -> projection.getPostId(),
+                                projection -> projection.getTotalCount()
+                        ));
+
+        Map<Long, List<String>> imageUrlMap =
+                postImageRepository.findAllByPostIds(postIds)
+                        .stream()
+                        .collect(Collectors.groupingBy(
+                                image -> image.getPost().getId(),
+                                Collectors.mapping(
+                                        PostImage::getImageUrl,
+                                        Collectors.toList()
+                                )
+                        ));
+
+        return posts.stream()
+                .map(post -> new PostResponseDto(
+                        post,
+                        likeCountMap.getOrDefault(
+                                post.getId(),
+                                0L
+                        ),
+                        commentCountMap.getOrDefault(
+                                post.getId(),
+                                0L
+                        ),
+                        imageUrlMap.getOrDefault(
+                                post.getId(),
+                                List.of()
+                        )
+                ))
+                .toList();
     }
 
     private PostResponseDto createPostResponseDto(Post post) {

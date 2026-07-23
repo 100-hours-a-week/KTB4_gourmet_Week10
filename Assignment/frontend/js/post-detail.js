@@ -36,6 +36,7 @@ let comments = [];
 let editingCommentId = null;
 let deletingCommentId = null;
 let currentPostOwnerId = null;
+let currentBoardType = "free";
 
 function getLoginUserId() {
     const userId = localStorage.getItem("userId");
@@ -389,7 +390,10 @@ function renderPostDetail(post) {
     const projectPeriod = document.querySelector("#project-period");
 
     const postId = post.postId ?? post.id;
-    const boardType = getPostBoard(postId) || "free";
+    currentBoardType = String(
+        post.boardType ?? "FREE"
+    ).toLowerCase();
+    
     const boardEyebrows = {
         free: "Free Board",
         question: "Q & A",
@@ -398,7 +402,7 @@ function renderPostDetail(post) {
     };
 
     if (detailEyebrow) {
-        detailEyebrow.textContent = boardEyebrows[boardType] || "Post";
+        detailEyebrow.textContent = boardEyebrows[currentBoardType] || "Post";
     }
 
     postTitle.textContent = post.title ?? "제목 없음";
@@ -406,7 +410,7 @@ function renderPostDetail(post) {
     let displayContent = post.content ?? "";
 
     if (projectPeriod) {
-        if (boardType === "project") {
+        if (currentBoardType === "project") {
             const parsed = parseProjectContent(displayContent);
             const meta = getProjectMeta(postId);
             const periodStart = meta?.periodStart || parsed.periodStart;
@@ -483,13 +487,12 @@ async function fetchPostDetail() {
     }
 
     try {
-        const userId = localStorage.getItem("userId");
-
-        const url = userId
-            ? `${API_BASE_URL}/posts/${postId}?userId=${userId}`
-            : `${API_BASE_URL}/posts/${postId}`;
-
-        const response = await fetch(url);
+        const response = await fetch(
+            `${API_BASE_URL}/posts/${postId}`,
+            {
+                credentials: "include"
+            }
+        );
 
         if (!response.ok) {
             throw new Error("게시글 상세 조회 실패");
@@ -509,9 +512,7 @@ async function fetchPostDetail() {
 }
 
 backButton.addEventListener("click", function () {
-    const postId = getSelectedPostId();
-    const boardType = getPostBoard(postId) || "free";
-    window.location.href = getBoardPage(boardType);
+    window.location.href = getBoardPage(currentBoardType);
 });
 
 postEditButton.addEventListener("click", function () {
@@ -562,8 +563,7 @@ postDeleteConfirm.addEventListener("click", async function () {
 
         closeModal(postDeleteModal);
         alert("게시글이 삭제되었습니다.");
-        const boardType = getPostBoard(postId) || "free";
-        window.location.href = getBoardPage(boardType);
+        window.location.href = getBoardPage(currentBoardType);
     } catch (error) {
         console.error("게시글 삭제 요청 오류:", error);
         alert(error?.message ?? "게시글 삭제에 실패했습니다.");

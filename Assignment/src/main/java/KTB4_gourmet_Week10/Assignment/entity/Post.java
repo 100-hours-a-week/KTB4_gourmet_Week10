@@ -1,42 +1,3 @@
-/*
-package KTB4_gourmet_Week7.Assignment.entity;
-
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-
-@Entity
-@Getter
-@RequiredArgsConstructor
-public class Post {
-
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "post_id")
-    private Long id;
-
-    private String title;
-    private String content;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User author;
-
-    public Post(String title, String content, User author) {
-        this.title = title;
-        this.content = content;
-        this.author = author;
-    }
-
-    public void changeTitle(String title) {
-        this.title = title;
-    }
-
-    public void changeContent(String content) {
-        this.content = content;
-    }
-}
-*/
-
 package KTB4_gourmet_Week10.Assignment.entity;
 
 import jakarta.persistence.*;
@@ -47,7 +8,15 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "posts")
+@Table(
+        name = "posts",
+        indexes = {
+                @Index(
+                        name = "idx_posts_board_created_id",
+                        columnList = "board_type, created_at, post_id"
+                )
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Post {
@@ -62,6 +31,10 @@ public class Post {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "board_type", nullable = false, length = 20)
+    private BoardType boardType;
 
     @Column(name = "view_count", nullable = false)
     private int viewCount = 0;
@@ -83,11 +56,16 @@ public class Post {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-
-    public Post(User user, String title, String content) {
+    public Post(
+            User user,
+            String title,
+            String content,
+            BoardType boardType
+    ) {
         this.user = user;
         this.title = title;
         this.content = content;
+        this.boardType = boardType;
         this.viewCount = 0;
     }
 

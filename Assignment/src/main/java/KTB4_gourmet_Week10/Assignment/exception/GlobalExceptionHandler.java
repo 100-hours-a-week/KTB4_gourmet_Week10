@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 
 @RestControllerAdvice
@@ -115,6 +116,27 @@ public class GlobalExceptionHandler {
         ErrorResponse response = new ErrorResponse(
                 HttpStatus.BAD_REQUEST,
                 "요청 본문 형식이 올바르지 않습니다."
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(
+            MethodArgumentTypeMismatchException e
+    ) {
+        String message = "요청 값이 올바르지 않습니다.";
+
+        if ("boardType".equals(e.getName())) {
+            message = "게시판 유형이 올바르지 않습니다. "
+                    + "FREE, QUESTION, STUDY, PROJECT 중 하나를 입력해주세요.";
+        }
+
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                message
         );
 
         return ResponseEntity

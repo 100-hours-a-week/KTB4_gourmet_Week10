@@ -1,8 +1,11 @@
 package KTB4_gourmet_Week10.Assignment.auth;
 
 import KTB4_gourmet_Week10.Assignment.exception.ForbiddenException;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.Optional;
 
 public final class SecurityUtil {
 
@@ -14,11 +17,30 @@ public final class SecurityUtil {
                 .getContext()
                 .getAuthentication();
 
-        if (authentication == null || authentication.getPrincipal() == null) {
+        if (!isAuthenticated(authentication)) {
             throw new ForbiddenException("접근 권한이 없습니다.");
         }
 
         return Long.valueOf(authentication.getPrincipal().toString());
+    }
+
+    public static Optional<Long> getOptionalLoginUserId() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (!isAuthenticated(authentication)) {
+            return Optional.empty();
+        }
+
+        try {
+            return Optional.of(
+                    Long.valueOf(
+                            authentication.getPrincipal().toString()
+                    )
+            );
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     public static void validateLoginUser(Long targetUserId) {
@@ -27,5 +49,15 @@ public final class SecurityUtil {
         if (!loginUserId.equals(targetUserId)) {
             throw new ForbiddenException("접근 권한이 없습니다.");
         }
+    }
+
+    private static boolean isAuthenticated(
+            Authentication authentication
+    ) {
+        return authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication
+                instanceof AnonymousAuthenticationToken)
+                && authentication.getPrincipal() != null;
     }
 }

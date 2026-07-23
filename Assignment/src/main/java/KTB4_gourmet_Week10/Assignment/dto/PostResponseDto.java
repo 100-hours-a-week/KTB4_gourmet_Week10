@@ -1,29 +1,6 @@
-/*
-package KTB4_gourmet_Week7.Assignment.dto;
-
-import lombok.Getter;
-import KTB4_gourmet_Week7.Assignment.entity.Post;
-import lombok.NoArgsConstructor;
-
-@Getter
-@NoArgsConstructor
-public class PostResponseDto {
-    private Long id;
-    private String title;
-    private String content;
-    private Long authorId;
-
-    public PostResponseDto(Post post) {
-        this.id = post.getId();
-        this.title = post.getTitle();
-        this.content = post.getContent();
-        this.authorId = post.getAuthor().getId();
-    }
-}
-*/
-
 package KTB4_gourmet_Week10.Assignment.dto;
 
+import KTB4_gourmet_Week10.Assignment.entity.BoardType;
 import KTB4_gourmet_Week10.Assignment.entity.Post;
 import lombok.Getter;
 
@@ -39,6 +16,7 @@ public class PostResponseDto {
     private final String profileImage;
     private final String title;
     private final String content;
+    private final BoardType boardType;
     private final int viewCount;
     private final long likeCount;
     private final long commentCount;
@@ -50,21 +28,34 @@ public class PostResponseDto {
         this(post, 0, 0, List.of());
     }
 
-    public PostResponseDto(Post post, long likeCount, long commentCount) {
+    public PostResponseDto(
+            Post post,
+            long likeCount,
+            long commentCount
+    ) {
         this(post, likeCount, commentCount, List.of());
     }
 
-    public PostResponseDto(Post post, long likeCount, long commentCount, List<String> imageUrls) {
+    public PostResponseDto(
+            Post post,
+            long likeCount,
+            long commentCount,
+            List<String> imageUrls
+    ) {
         this.id = post.getId();
         this.userId = post.getUserId();
+
         this.nickname = post.getUser().getDeletedAt() == null
                 ? post.getUser().getNickname()
                 : "알 수 없음";
+
         this.profileImage = post.getUser().getDeletedAt() == null
                 ? post.getUser().getProfileImage()
                 : null;
+
         this.title = post.getTitle();
         this.content = post.getContent();
+        this.boardType = post.getBoardType();
         this.viewCount = post.getViewCount();
         this.likeCount = likeCount;
         this.commentCount = commentCount;

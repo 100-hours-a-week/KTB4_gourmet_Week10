@@ -93,6 +93,7 @@ projectCreateForm.addEventListener("submit", async function (event) {
 
         formData.append("title", title);
         formData.append("content", fullContent);
+        formData.append("boardType", "PROJECT");
 
         if (imageInput.files.length > 0) {
             Array.from(imageInput.files).forEach(function (image) {
@@ -117,12 +118,7 @@ projectCreateForm.addEventListener("submit", async function (event) {
         if (postId) {
             localStorage.setItem("selectedPostId", postId);
 
-            if (typeof rememberCreatedPost === "function") {
-                rememberCreatedPost(postId, "project");
-            } else {
-                setPostBoard(postId, "project");
-            }
-
+            
             setProjectMeta(postId, {
                 periodStart: periodStart,
                 periodEnd: periodEnd

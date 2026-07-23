@@ -13,7 +13,27 @@ const formTitle = document.querySelector("#form-title");
 const formDesc = document.querySelector("#form-desc");
 
 const boardParams = new URLSearchParams(window.location.search);
-const boardType = boardParams.get("board") || "free";
+const requestedBoardType = (boardParams.get("board") || "free").toLowerCase();
+
+if (requestedBoardType === "project") {
+    window.location.replace("./project-create.html");
+}
+
+const BOARD_TYPE_VALUES = {
+    free: "FREE",
+    question: "QUESTION",
+    study: "STUDY"
+};
+
+const boardType =
+    Object.prototype.hasOwnProperty.call(
+        BOARD_TYPE_VALUES,
+        requestedBoardType
+    )
+        ? requestedBoardType
+        : "free";
+
+const apiBoardType = BOARD_TYPE_VALUES[boardType];
 
 const BOARD_COPY = {
     free: {
@@ -36,7 +56,7 @@ const BOARD_COPY = {
     }
 };
 
-const copy = BOARD_COPY[boardType] || BOARD_COPY.free;
+const copy = BOARD_COPY[boardType];
 
 if (formEyebrow) {
     formEyebrow.textContent = copy.eyebrow;
@@ -56,33 +76,18 @@ if (contentInput) {
 
 document.title = `${copy.title} · Gourmet Community`;
 
-function safeSetPostBoard(postId, type) {
-    if (typeof rememberCreatedPost === "function") {
-        rememberCreatedPost(postId, type);
-        return;
-    }
-
-    if (typeof setPostBoard === "function") {
-        setPostBoard(postId, type);
-        return;
-    }
-
-    try {
-        const key = "gourmetBoardMap";
-        const map = JSON.parse(localStorage.getItem(key) || "{}");
-        map[String(postId)] = type;
-        localStorage.setItem(key, JSON.stringify(map));
-    } catch (error) {
-        console.error("게시판 저장 오류:", error);
-    }
-}
-
 function safeExtractPostId(post) {
     if (typeof extractPostId === "function") {
         return extractPostId(post);
     }
 
-    return post?.postId ?? post?.id ?? null;
+    return (
+        post?.postId ??
+        post?.id ??
+        post?.data?.postId ??
+        post?.data?.id ??
+        null
+    );
 }
 
 function safeGetBoardPage(type) {
@@ -93,14 +98,11 @@ function safeGetBoardPage(type) {
     const pages = {
         free: "./posts.html",
         question: "./question.html",
-        study: "./study.html",
-        project: "./project.html"
+        study: "./study.html"
     };
 
     return pages[type] || pages.free;
 }
-
-let selectedImage = null;
 
 function validatePostForm() {
     const title = titleInput.value.trim();
@@ -130,18 +132,22 @@ titleInput.addEventListener("input", function () {
 contentInput.addEventListener("input", validatePostForm);
 
 imageInput.addEventListener("change", function () {
-    const file = imageInput.files[0];
+    const files = Array.from(imageInput.files);
 
-    if (!file) {
-        selectedImage = null;
+    if (files.length === 0) {
         fileName.textContent = "파일을 선택해주세요.";
         return;
     }
 
-    selectedImage = file;
-    fileName.textContent = file.name;
+    if (files.length === 1) {
+        fileName.textContent = files[0].name;
+        return;
+    }
 
-    console.log("이미지 선택:", selectedImage);
+    fileName.textContent =
+        `${files[0].name} 외 ${files.length - 1}개`;
+
+    console.log("이미지 선택:", files);
 });
 
 postCreateForm.addEventListener("submit", async function (event) {
@@ -170,6 +176,7 @@ postCreateForm.addEventListener("submit", async function (event) {
 
         formData.append("title", title);
         formData.append("content", content);
+        formData.append("boardType", apiBoardType);
 
         if (imageInput.files.length > 0) {
             Array.from(imageInput.files).forEach(function (image) {
@@ -190,18 +197,25 @@ postCreateForm.addEventListener("submit", async function (event) {
 
         const postId = safeExtractPostId(post);
 
-        if (postId) {
-            localStorage.setItem("selectedPostId", postId);
-            safeSetPostBoard(postId, boardType);
+        if (postId != null) {
+            localStorage.setItem(
+                "selectedPostId",
+                String(postId)
+            );
         } else {
-            console.warn("작성 응답에서 postId를 찾지 못했습니다:", post);
+            console.warn(
+                "작성 응답에서 postId를 찾지 못했습니다:",
+                post
+            );
         }
 
         alert("게시글이 작성되었습니다.");
         window.location.href = safeGetBoardPage(boardType);
     } catch (error) {
         console.error("게시글 작성 요청 오류:", error);
-        helperText.textContent = `* ${error?.message ?? "게시글 작성에 실패했습니다."}`;
+
+        helperText.textContent =
+            `* ${error?.message ?? "게시글 작성에 실패했습니다."}`;
     }
 });
 
