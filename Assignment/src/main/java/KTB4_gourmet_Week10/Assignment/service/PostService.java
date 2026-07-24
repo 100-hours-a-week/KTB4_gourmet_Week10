@@ -18,6 +18,7 @@ import KTB4_gourmet_Week10.Assignment.repository.PostViewRepository;
 import KTB4_gourmet_Week10.Assignment.repository.UserRepository;
 import KTB4_gourmet_Week10.Assignment.auth.SecurityUtil;
 import KTB4_gourmet_Week10.Assignment.entity.BoardType;
+import KTB4_gourmet_Week10.Assignment.service.assembler.PostResponseAssembler;
 import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,8 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +42,7 @@ public class PostService {
     private final PostImageRepository postImageRepository;
     private final PostViewRepository postViewRepository;
     private final FileStorageService fileStorageService;
+    private final PostResponseAssembler postResponseAssembler;
 
     @Transactional
     public PostResponseDto createPost(
@@ -89,7 +89,7 @@ public class PostService {
             }
         }
 
-        return createPostResponseDto(savedPost);
+        return postResponseAssembler.toDto(savedPost);
     }
 
     public PostPageResponseDto getPosts(
@@ -118,7 +118,7 @@ public class PostService {
         }
 
         List<PostResponseDto> content =
-                createPostResponseDtos(postPage.getContent());
+                postResponseAssembler.toDtos(postPage.getContent());
 
         return new PostPageResponseDto(
                 content,
@@ -143,7 +143,7 @@ public class PostService {
                         )
                 );
 
-        return createPostResponseDto(post);
+        return postResponseAssembler.toDto(post);
     }
 
     @Transactional
@@ -179,7 +179,7 @@ public class PostService {
             }
         }
 
-        return createPostResponseDto(post);
+        return postResponseAssembler.toDto(post);
     }
 
     @Transactional
@@ -234,7 +234,7 @@ public class PostService {
         post.increaseViewCount();
     }
 
-    private List<PostResponseDto> createPostResponseDtos(
+/*    private List<PostResponseDto> createPostResponseDtos(
             List<Post> posts
     ) {
         if (posts.isEmpty()) {
@@ -302,5 +302,5 @@ public class PostService {
                 .toList();
 
         return new PostResponseDto(post, likeCount, commentCount, imageUrls);
-    }
+    }*/
 }

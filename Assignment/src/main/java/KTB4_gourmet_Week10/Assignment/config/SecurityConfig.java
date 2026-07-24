@@ -73,6 +73,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/users/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/users/token/refresh").permitAll()
                         .requestMatchers(HttpMethod.POST, "/users/logout").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/posts/search").authenticated()
 
                         .requestMatchers(HttpMethod.GET, "/posts").permitAll()
                         .requestMatchers(HttpMethod.GET, "/posts/*").permitAll()
